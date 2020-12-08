@@ -8,12 +8,22 @@ import (
 )
 
 func main() {
-	Crawl("https://www.google.com")
+
+	foundedUrllist := map[string]string{}
+
+	Crawl("http://www.google.com", 1, foundedUrllist)
+
+	fmt.Println("Founded URL Count: ", len(foundedUrllist))
 }
 
 //Crawl func fetches an URL and lists URLs on the loaded pages
-func Crawl(url string) {
+func Crawl(url string, depth int, foundedUrllist map[string]string) {
 
+	if depth < 0 {
+		return
+	}
+
+	//get the page
 	response, err := http.Get(url)
 
 	if err != nil {
@@ -23,26 +33,32 @@ func Crawl(url string) {
 
 	defer response.Body.Close()
 
+	//read the page as binary
 	dataBytes, err := ioutil.ReadAll(response.Body)
 
+	//convert the page to string
 	pageContent := string(dataBytes)
 
+	//regex for URL detection
 	regex := regexp.MustCompile(`(http|ftp|https):\/\/([\w\-_]+(?:(?:\.[\w\-_]+)+))([\w\-\.,@?^=%&amp;:/~\+#]*[\w\-\@?^=%&amp;/~\+#])?`)
 
 	URLs := regex.FindAllStringSubmatch(pageContent, -1)
 
-	list := map[string]string{}
+	depth--
 
 	for i := range URLs {
 
 		urlFounded := URLs[i][0]
 
-		_, ok := list[urlFounded]
+		_, ok := foundedUrllist[urlFounded]
 
 		if !ok {
 
-			list[urlFounded] = ""
+			foundedUrllist[urlFounded] = ""
+
 			fmt.Printf("URL: %s\n", urlFounded)
+
+			Crawl(urlFounded, depth, foundedUrllist)
 		}
 	}
 }
